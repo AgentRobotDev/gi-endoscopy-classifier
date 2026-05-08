@@ -244,11 +244,42 @@ main {
   overflow: hidden;
 }
 
+.cam-toggle-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.cam-toggle-btn {
+  flex: 1;
+  padding: 7px;
+  background: var(--surface-2);
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.cam-toggle-btn:first-child { border-right: 1px solid var(--border); }
+
+.cam-toggle-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.cam-toggle-btn:hover:not(.active) {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .preview-card img {
   width: 100%;
   height: 220px;
   object-fit: cover;
   display: block;
+  transition: opacity 0.2s;
 }
 
 .btn-predict {

@@ -12,30 +12,36 @@ from PIL import Image
 
 from inference import Predictor
 
+HERE = Path(__file__).parent
 _predictor: Predictor | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _predictor
-    model_path = Path(os.environ.get("MODEL_PATH", "model/best_model.pt"))
+    model_path = Path(os.environ.get("MODEL_PATH", str(HERE / "model" / "best_model.pt")))
     _predictor = Predictor(model_path)
     yield
 
 
 app = FastAPI(title="GI Endoscopy Classifier", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(HERE / "static")), name="static")
 
 
 @app.get("/")
 def index() -> FileResponse:
-    return FileResponse("static/index.html")
+    return FileResponse(str(HERE / "static" / "index.html"))
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
 
 
 @app.get("/samples")
 def list_samples() -> dict[str, list[str]]:
     """Return {class_name: [url, ...]} for all bundled sample images."""
-    samples_dir = Path("static/samples")
+    samples_dir = HERE / "static" / "samples"
     if not samples_dir.exists():
         return {}
     return {
@@ -57,5 +63,4 @@ async def predict(file: UploadFile = File(...)) -> JSONResponse:
     except Exception:
         raise HTTPException(status_code=400, detail="Could not decode image.")
 
-    predictions = _predictor.predict(image)
-    return JSONResponse({"predictions": predictions})
+    return JSONResponse(_predictor.predict(image))

@@ -20,6 +20,8 @@ const CLASS_INFO = {
 let allSamples = {};
 let activeFilter = "all";
 let selectedGalleryUrl = null;
+let originalSrc = null;
+let camOverlaySrc = null;
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -142,9 +144,14 @@ function clearGallerySelection() {
 function showPreview(src) {
   const panel = document.getElementById("predictPanel");
   const img = document.getElementById("selectedImg");
+  originalSrc = src;
+  camOverlaySrc = null;
   img.src = src;
   panel.style.display = "flex";
   document.getElementById("results").innerHTML = "";
+  document.getElementById("camToggleBar").style.display = "none";
+  document.getElementById("btnOriginal").classList.add("active");
+  document.getElementById("btnHeatmap").classList.remove("active");
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
@@ -172,8 +179,27 @@ async function runInference() {
       throw new Error(err.detail ?? `HTTP ${res.status}`);
     }
 
-    const { predictions } = await res.json();
-    renderResults(predictions);
+    const data = await res.json();
+    renderResults(data.predictions);
+
+    if (data.cam_overlay) {
+      camOverlaySrc = data.cam_overlay;
+      const toggleBar = document.getElementById("camToggleBar");
+      const btnOriginal = document.getElementById("btnOriginal");
+      const btnHeatmap = document.getElementById("btnHeatmap");
+      toggleBar.style.display = "flex";
+
+      btnOriginal.onclick = () => {
+        document.getElementById("selectedImg").src = originalSrc;
+        btnOriginal.classList.add("active");
+        btnHeatmap.classList.remove("active");
+      };
+      btnHeatmap.onclick = () => {
+        document.getElementById("selectedImg").src = camOverlaySrc;
+        btnHeatmap.classList.add("active");
+        btnOriginal.classList.remove("active");
+      };
+    }
   } catch (e) {
     results.innerHTML = `<div class="msg error">Error: ${e.message}</div>`;
   } finally {

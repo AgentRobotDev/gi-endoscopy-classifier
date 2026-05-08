@@ -47,6 +47,10 @@
 
     <aside class="predict-panel" id="predictPanel" style="display:none">
       <div class="preview-card">
+        <div class="cam-toggle-bar" id="camToggleBar" style="display:none">
+          <button class="cam-toggle-btn active" id="btnOriginal" type="button">Original</button>
+          <button class="cam-toggle-btn" id="btnHeatmap" type="button">Grad-CAM</button>
+        </div>
         <img id="selectedImg" src="" alt="Selected endoscopy image">
         <button id="predictBtn" class="btn-predict" type="button">Run Inference</button>
       </div>
