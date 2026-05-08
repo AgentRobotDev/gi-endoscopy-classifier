@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GI Endoscopy Classifier</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="header-title">
+        <h1>GI Endoscopy Classifier</h1>
+        <span class="badge">Live Demo</span>
+      </div>
+      <p class="header-sub">
+        EfficientNet-B0 fine-tuned on
+        <a href="https://datasets.simula.no/kvasir/" target="_blank" rel="noopener">Kvasir-v2</a>
+        &middot; 8 GI endoscopy classes &middot; PyTorch &middot; Deployed on Google Cloud Run
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <section class="gallery-section">
+      <div class="gallery-toggle" id="galleryToggle" role="button" tabindex="0"
+           aria-expanded="false" aria-controls="galleryBody">
+        <div class="gallery-toggle-text">
+          <h2>Try It — Run Inference on Sample Images</h2>
+          <p class="hint">Click to browse real endoscopy images from the Kvasir-v2 dataset and test the model's predictions.</p>
+        </div>
+        <svg class="gallery-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+
+      <div id="galleryBody" hidden>
+        <div class="filter-bar" id="filterBar" role="tablist" aria-label="Filter by class"></div>
+        <div id="imageGrid" class="image-grid" aria-label="Sample images"></div>
+        <div id="noSamples" class="no-samples" style="display:none">
+          <p>No sample images found. Run <code>python export_samples.py</code> from the
+          <code>training/</code> directory to populate the gallery.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="predict-panel" id="predictPanel" style="display:none">
+      <div class="preview-card">
+        <img id="selectedImg" src="" alt="Selected endoscopy image">
+        <button id="predictBtn" class="btn-predict" type="button">Run Inference</button>
+      </div>
+      <div id="results" class="results" aria-live="polite"></div>
+    </aside>
+  </main>
+
+  <section class="metrics-section">
+    <div class="metrics-inner">
+      <h2 class="metrics-heading">Model Performance</h2>
+      <div id="metricsContent">
+        <p class="metrics-placeholder">
+          Run <code>python evaluate_metrics.py</code> from <code>training/</code> to generate metrics.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="limits-section">
+    <div class="limits-inner">
+      <div class="limits-heading">
+        <h2>Dataset Limitations &amp; Real-World Considerations</h2>
+        <p>This demo achieves 92.9% validation accuracy on Kvasir-v2, but several factors mean that number should be interpreted cautiously before drawing conclusions about clinical readiness.</p>
+      </div>
+      <div class="limits-grid">
+
+        <div class="limit-card">
+          <div class="limit-card-title">
+            <span class="limit-icon warn">!</span>
+            Equipment Color Bias
+          </div>
+          <p class="limit-body">All Kvasir-v2 images were captured at a single hospital using the same endoscopy equipment. Each class has a consistent color profile — normal cecum images share a yellowish hue, polyp images a reddish tone — that reflects the camera and lighting rather than pathology alone. The model may have learned to key on these color signatures as a shortcut rather than learning the underlying tissue morphology.</p>
+          <div class="limit-production">
+            <span class="limit-prod-label">In production</span>
+            More aggressive color augmentation during training — random hue shifts, grayscale conversion, histogram equalization — would force the model to learn structure over color. Evaluation on images from multiple hospitals with different equipment is required to confirm generalization.
+          </div>
+        </div>
+
+        <div class="limit-card">
+          <div class="limit-card-title">
+            <span class="limit-icon warn">!</span>
+            Potential Patient Leakage
+          </div>
+          <p class="limit-body">Kvasir-v2 does not disclose patient counts or how images are distributed across patients. If multiple images from the same patient appear in both the training and validation sets, the model may be partially memorizing patient-specific anatomy — mucosal texture, vascular patterns, and color profiles that are consistent within a patient regardless of class. This would artificially inflate validation accuracy.</p>
+          <div class="limit-production">
+            <span class="limit-prod-label">In production</span>
+            Datasets must be split by patient ID, not by image. All images from a given patient go entirely into train or entirely into validation — never both. This is standard in clinical ML and is why benchmark accuracy often drops significantly when applied to new patient cohorts.
+          </div>
+        </div>
+
+        <div class="limit-card">
+          <div class="limit-card-title">
+            <span class="limit-icon warn">!</span>
+            Single-Site, Curated Data
+          </div>
+          <p class="limit-body">Real colonoscopy datasets are heavily imbalanced — polyps appear in roughly 20–30% of procedures, meaning a model trained on real data would see far more normal images than pathological ones. Kvasir-v2's perfectly balanced 1,000-images-per-class distribution is an idealized condition that does not reflect clinical prevalence. A naive model on real data could achieve high accuracy simply by always predicting "normal."</p>
+          <div class="limit-production">
+            <span class="limit-prod-label">In production</span>
+            Class-weighted loss functions, oversampling of minority classes, and threshold tuning based on the clinical cost of false negatives versus false positives are all required. In cancer screening, missing a polyp (false negative) is far worse than a false alarm (false positive), so decision thresholds should be tuned accordingly.
+          </div>
+        </div>
+
+        <div class="limit-card">
+          <div class="limit-card-title">
+            <span class="limit-icon warn">!</span>
+            Classification vs. Localization
+          </div>
+          <p class="limit-body">This model outputs a single class label for the entire image — it can tell you a polyp is present but not where. Global average pooling in the EfficientNet head discards all spatial information before the classifier sees it. In a clinical setting, a tool that cannot indicate the location of a finding has limited utility for guiding a physician's instrument.</p>
+          <div class="limit-production">
+            <span class="limit-prod-label">In production</span>
+            Segmentation models (U-Net, Mask R-CNN) trained on pixel-level annotations like the Kvasir-SEG dataset would produce an overlay mask showing the exact boundary of each polyp. This is the architecture used in research-grade clinical decision support tools.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="arch-section">
+    <div class="arch-header">
+      <div class="arch-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        <h2>Model Architecture</h2>
+        <span class="arch-subtitle">EfficientNet-B0 · PyTorch · Fine-tuned on Kvasir-v2</span>
+      </div>
+    </div>
+    <div class="arch-body" id="archBody">
+      <div class="arch-layers" id="archLayers"></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Model trained locally &middot; Source on
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    </p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
