@@ -1,6 +1,9 @@
 """Integration tests for the FastAPI endpoints."""
 
+import io
+
 import pytest
+from PIL import Image
 
 
 # ── Basic endpoints ────────────────────────────────────────────────────────
@@ -74,3 +77,31 @@ def test_predict_empty_file_returns_400(client):
         files={"file": ("empty.jpg", b"", "image/jpeg")},
     )
     assert res.status_code == 400
+
+
+# ── Upload size limit ──────────────────────────────────────────────────────
+
+def test_predict_oversized_file_returns_413(client):
+    oversized = b"x" * (10 * 1024 * 1024 + 1)
+    res = client.post(
+        "/predict",
+        files={"file": ("big.jpg", oversized, "image/jpeg")},
+    )
+    assert res.status_code == 413
+
+
+# ── Rate limiting ──────────────────────────────────────────────────────────
+
+def test_predict_rate_limit_returns_429(client, sample_image_bytes):
+    import main
+    main._rate_store.clear()
+
+    for _ in range(main._RATE_LIMIT):
+        client.post("/predict", files={"file": ("img.jpg", sample_image_bytes, "image/jpeg")})
+
+    res = client.post(
+        "/predict",
+        files={"file": ("img.jpg", sample_image_bytes, "image/jpeg")},
+    )
+    assert res.status_code == 429
+    assert "Retry-After" in res.headers

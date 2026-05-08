@@ -5,14 +5,15 @@ import logging
 import os
 import time
 import uuid
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
+from starlette.middleware.base import BaseHTTPMiddleware
 
 import logging_config
 from inference import Predictor
@@ -21,6 +22,31 @@ HERE = Path(__file__).parent
 _predictor: Predictor | None = None
 log = logging.getLogger("app")
 
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+# Sliding-window counter per client IP. Limits the expensive /predict endpoint
+# to prevent cost abuse on Cloud Run's per-request billing.
+_RATE_LIMIT = 20          # max requests per window
+_RATE_WINDOW = 60.0       # window size in seconds
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+_rate_store: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(ip: str) -> None:
+    now = time.monotonic()
+    cutoff = now - _RATE_WINDOW
+    timestamps = [t for t in _rate_store[ip] if t > cutoff]
+    if len(timestamps) >= _RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: {_RATE_LIMIT} requests per minute.",
+            headers={"Retry-After": str(int(_RATE_WINDOW))},
+        )
+    timestamps.append(now)
+    _rate_store[ip] = timestamps
+
+
+# ── Middleware ────────────────────────────────────────────────────────────────
 
 class _RequestLogger(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -41,6 +67,8 @@ class _RequestLogger(BaseHTTPMiddleware):
         return response
 
 
+# ── Lifespan ──────────────────────────────────────────────────────────────────
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging_config.configure()
@@ -50,6 +78,8 @@ async def lifespan(app: FastAPI):
     log.info("model loaded", extra={"model_path": str(model_path)})
     yield
 
+
+# ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="GI Endoscopy Classifier", lifespan=lifespan)
 app.add_middleware(_RequestLogger)
@@ -84,8 +114,13 @@ def list_samples() -> dict[str, list[str]]:
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)) -> JSONResponse:
+async def predict(request: Request, file: UploadFile = File(...)) -> JSONResponse:
+    _check_rate_limit(request.client.host)
+
     contents = await file.read()
+    if len(contents) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum upload size is 10 MB.")
+
     try:
         image = Image.open(io.BytesIO(contents))
     except Exception:
