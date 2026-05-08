@@ -310,10 +310,33 @@ main {
   overflow: hidden;
 }
 
+.confidence-warning {
+  padding: 9px 14px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--border);
+}
+
+.confidence-warning.warn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-left: 3px solid #ef4444;
+}
+
+.confidence-warning.caution {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  border-left: 3px solid #fbbf24;
+}
+
 .result-top {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--accent-dim);
+}
+
+.result-top.low-confidence {
+  background: rgba(239, 68, 68, 0.06);
 }
 
 .result-prediction-label {

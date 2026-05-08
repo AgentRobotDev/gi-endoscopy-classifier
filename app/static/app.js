@@ -214,11 +214,27 @@ function renderResults(predictions) {
   const top = predictions[0];
   const results = document.getElementById("results");
 
+  const confidence = top.probability;
+  const isLow = confidence < 0.60;
+  const isMedium = confidence >= 0.60 && confidence < 0.80;
+
+  const warningBanner = isLow
+    ? `<div class="confidence-warning warn">
+         <strong>Low confidence (${(confidence * 100).toFixed(1)}%)</strong> — the model is uncertain.
+         Do not use this result for clinical decisions.
+       </div>`
+    : isMedium
+    ? `<div class="confidence-warning caution">
+         <strong>Moderate confidence (${(confidence * 100).toFixed(1)}%)</strong> — treat with caution.
+       </div>`
+    : "";
+
   results.innerHTML = `
-    <div class="result-top">
+    ${warningBanner}
+    <div class="result-top${isLow ? " low-confidence" : ""}">
       <div class="result-prediction-label">Prediction</div>
       <div class="result-class-name">${formatClass(top.class)}</div>
-      <div class="result-confidence">${(top.probability * 100).toFixed(1)}% confidence</div>
+      <div class="result-confidence">${(confidence * 100).toFixed(1)}% confidence</div>
       <div class="result-desc">${CLASS_INFO[top.class] ?? ""}</div>
     </div>
     <div class="result-bars">
