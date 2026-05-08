@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Dataset (too large for git)
+data/
+
+# Trained model weights (too large for git)
+models/
+app/model/
+
+# Sample images ARE committed (small, part of the demo)
+!app/static/samples/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+*.dockerignore
