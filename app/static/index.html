@@ -147,10 +147,88 @@
     </div>
   </section>
 
+  <section class="eng-section">
+    <div class="eng-inner">
+      <div class="eng-heading">
+        <h2>Engineering &amp; MLOps</h2>
+        <p>Beyond the model itself, this project demonstrates the production practices that turn a trained checkpoint into a maintainable, observable service.</p>
+      </div>
+      <div class="eng-grid">
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">Grad-CAM Explainability</div>
+            <p class="eng-card-desc">After each prediction, gradient-weighted class activation maps highlight which regions of the image the model attended to. Implemented from scratch using PyTorch forward and backward hooks — no external libraries. Toggle between original and heatmap overlay using the buttons above the preview.</p>
+            <code class="eng-tag">app/inference.py &rarr; _GradCAM</code>
+          </div>
+        </div>
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">Confidence Warnings</div>
+            <p class="eng-card-desc">Predictions below 60% confidence display a red warning banner; predictions between 60–80% show a yellow caution notice. In a clinical tool, overconfident presentation of a borderline result is a patient safety issue — uncertainty should be surfaced explicitly rather than suppressed.</p>
+            <code class="eng-tag">app/static/app.js &rarr; renderResults()</code>
+          </div>
+        </div>
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">27-Test pytest Suite</div>
+            <p class="eng-card-desc">Three test modules cover the full stack: transform shape and determinism, inference output structure and Grad-CAM correctness, and all five API endpoints including error paths. A session-scoped fixture builds a random-weight EfficientNet-B0 checkpoint at test startup so tests never require the trained model file.</p>
+            <code class="eng-tag">tests/ &rarr; test_transforms, test_inference, test_api</code>
+          </div>
+        </div>
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">Structured JSON Logging</div>
+            <p class="eng-card-desc">Every request and prediction is emitted as a single JSON line containing timestamp, level, method, path, status code, and duration. In Cloud Run, the log aggregator can parse these fields directly without regex scraping, enabling metric-based alerts on p99 latency or error rate. A custom <code>JsonFormatter</code> extends the standard library logger — no third-party dependency.</p>
+            <code class="eng-tag">app/logging_config.py &rarr; JsonFormatter</code>
+          </div>
+        </div>
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">GitHub Actions CI</div>
+            <p class="eng-card-desc">All 27 tests run automatically on every push and pull request via a GitHub Actions workflow. The workflow installs PyTorch's CPU-only wheel (~200 MB) rather than the full CUDA build (~2 GB), keeping CI fast. Python dependency caching means subsequent runs skip reinstalling unchanged packages.</p>
+            <code class="eng-tag">.github/workflows/ci.yml</code>
+          </div>
+        </div>
+
+        <div class="eng-card">
+          <div class="eng-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="eng-card-body">
+            <div class="eng-card-title">Input Validation</div>
+            <p class="eng-card-desc">The <code>/predict</code> endpoint rejects non-image files and empty uploads with a 400 status and a descriptive error message before the payload reaches the model. PIL's <code>Image.open()</code> is used as the validation gate — if the bytes are not a decodable image, the request is rejected immediately rather than causing an opaque server error.</p>
+            <code class="eng-tag">app/main.py &rarr; predict()</code>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <footer>
     <p>
-      Model trained locally &middot; Source on
-      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      Model trained locally on Apple Silicon &middot; Source on
+      <a id="githubLink" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
     </p>
   </footer>
 
